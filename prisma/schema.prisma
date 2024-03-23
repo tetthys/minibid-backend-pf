@@ -1,0 +1,242 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+    id BigInt @id @default(autoincrement())
+
+    username String @db.VarChar(255) @unique
+    dateOfBirth DateTime @db.DateTime(3)
+    phoneNumber String @db.VarChar(255)
+    password String @db.VarChar(255)
+    currency String @db.VarChar(255)
+    email String @db.VarChar(255) @unique
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    products Product[]
+    checkouts Checkout[]
+    bids Bid[]
+    notifications Notification[]
+    sentMessages Message[] @relation("sentMessages") // useless
+    receivedMessages Message[] @relation("receivedMessages") // useless
+    accessTokens AccessToken[]
+    withdrawals Withdrawal[]
+
+    card Card?
+    bankAccount BankAccount?
+    admin Admin?
+    profileImage ProfileImage?
+}
+
+model ProfileImage {
+    id BigInt @id @default(autoincrement())
+    user User @relation(fields: [id], references: [id])
+
+    path String @db.VarChar(255)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model AccessToken {
+    id BigInt @id @default(autoincrement())
+
+    userId BigInt
+    user User @relation(fields: [userId], references: [id])
+
+    token String @db.VarChar(255) @unique
+    expiredAt DateTime @db.DateTime(3)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Product {
+    id BigInt @id @default(autoincrement())
+
+    userId BigInt
+    user User @relation(fields: [userId], references: [id])
+
+    name String @db.VarChar(255)
+    shortDescription String @db.VarChar(255)
+    description String @db.Text
+    startingPrice Decimal @db.Decimal(24, 6)
+    endAt DateTime @db.DateTime(3)
+    isEnded Boolean @default(false) // To prevent duplication
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    productImages ProductImage[]
+    checkouts Checkout[]
+    bids Bid[]
+    productCategories ProductCategory[]
+}
+
+model ProductImage {
+    id BigInt @id @default(autoincrement())
+
+    productId BigInt
+    product Product @relation(fields: [productId], references: [id])
+
+    path String @db.VarChar(255)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Checkout {
+    userId BigInt
+    user User @relation(fields: [userId], references: [id])
+
+    productId BigInt
+    product Product @relation(fields: [productId], references: [id])
+
+    state String @db.VarChar(255)
+    price Decimal @db.Decimal(24, 6)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@id([userId, productId])
+}
+
+model Bid {
+    id BigInt @id @default(autoincrement())
+
+    userId BigInt
+    user User @relation(fields: [userId], references: [id])
+
+    productId BigInt
+    product Product @relation(fields: [productId], references: [id])
+
+    biddingPrice Decimal @db.Decimal(24, 6)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Notification {
+    id BigInt @id @default(autoincrement())
+
+    userId BigInt
+    user User @relation(fields: [userId], references: [id])
+
+    data String @db.Text
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Message {
+    id BigInt @id @default(autoincrement())
+
+    senderId BigInt
+    sender User @relation("sentMessages" ,fields: [senderId], references: [id])
+
+    receiverId BigInt
+    receiver User @relation("receivedMessages", fields: [receiverId], references: [id])
+
+    data String @db.Text
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Category {
+    id BigInt @id @default(autoincrement())
+
+    name String @db.VarChar(255)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    productCategories ProductCategory[]
+}
+
+model ProductCategory {
+    productId BigInt
+    product Product @relation(fields: [productId], references: [id])
+
+    categoryId BigInt
+    category Category @relation(fields: [categoryId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@id([productId, categoryId])
+}
+
+// ! This is neither a master table nor a relational table.
+// ! I created for convenience to store results for the exchange rate API.
+model Exchange {
+    id BigInt @id @default(autoincrement())
+
+    currency String @db.VarChar(255)
+    perUSD Decimal @db.Decimal(24, 6)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Card {
+    id BigInt @id @default(autoincrement())
+    user User @relation(fields: [id], references: [id])
+
+    info String @db.VarChar(255)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model BankAccount {
+    id BigInt @id @default(autoincrement())
+    user User @relation(fields: [id], references: [id])
+
+    info String @db.VarChar(255)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Withdrawal {
+    id BigInt @id @default(autoincrement())
+
+    userId BigInt
+    user User @relation(fields: [userId], references: [id])
+
+    state String @db.VarChar(255)
+    amount Decimal @db.Decimal(24, 6)
+
+    product String @db.Text // There is no relation. It is just for convenience.
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Admin {
+    id BigInt @id @default(autoincrement())
+    user User @relation(fields: [id], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Job {
+    id BigInt @id @default(autoincrement())
+
+    payload String @db.Text
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
